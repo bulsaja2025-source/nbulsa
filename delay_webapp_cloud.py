@@ -87,6 +87,17 @@ def S(v: Any) -> str:
         return ""
 
 
+def get_server_ip():
+    """서버의 외부 IP 주소 확인"""
+    try:
+        response = requests.get("https://api.ipify.org?format=json", timeout=5)
+        if response.status_code == 200:
+            return response.json().get("ip", "알 수 없음")
+    except:
+        pass
+    return "알 수 없음"
+
+
 # ========== 설정 로드 ==========
 def get_config():
     """설정 정보 가져오기 (Streamlit Secrets 또는 세션)"""
@@ -94,17 +105,14 @@ def get_config():
 
     # Streamlit Secrets에서 가져오기 (Cloud 배포용)
     try:
-        # gcp_service_account 섹션 확인
         if hasattr(st, 'secrets') and "gcp_service_account" in st.secrets:
             config["credentials"] = dict(st.secrets["gcp_service_account"])
-
-        # spreadsheet_key 확인
         if hasattr(st, 'secrets') and "spreadsheet_key" in st.secrets:
             config["spreadsheet_key"] = st.secrets["spreadsheet_key"]
-    except Exception:
+    except:
         pass
 
-    # 세션에서 가져오기 (사용자 입력 - 로컬 실행용)
+    # 세션에서 가져오기 (사용자 입력)
     if "credentials" not in config and "user_credentials" in st.session_state:
         config["credentials"] = st.session_state["user_credentials"]
     if "spreadsheet_key" not in config and "user_spreadsheet_key" in st.session_state:
@@ -365,9 +373,17 @@ def main_app():
 
     config = get_config()
 
-    # 설정 초기화 버튼
+    # 사이드바 설정
     with st.sidebar:
         st.subheader("설정")
+
+        # 서버 IP 표시 (네이버 API 등록용)
+        server_ip = get_server_ip()
+        st.info(f"📡 서버 IP: **{server_ip}**")
+        st.caption("이 IP를 네이버에 등록하세요")
+
+        st.divider()
+
         if st.button("⚙️ 설정 변경"):
             st.session_state["config_complete"] = False
             if "user_credentials" in st.session_state:
